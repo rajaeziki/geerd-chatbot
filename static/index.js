@@ -1,36 +1,41 @@
-document.getElementById('chat-form').addEventListener('submit', function(event) {
+document.getElementById('upload-form').addEventListener('submit', function(event) {
     event.preventDefault();
 
-    const question = document.getElementById('question').value;
+    let formData = new FormData();
+    formData.append('document', document.getElementById('file-input').files[0]);
 
-    // Display the user's question in the chat history
-    addMessageToChat('You', question);
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    }).then(response => response.json())
+      .then(data => {
+          console.log('Document uploaded successfully:', data);
+          alert('Document uploaded successfully!');
+      })
+      .catch(error => {
+          console.error('Error uploading document:', error);
+      });
+});
+
+document.getElementById('send-btn').addEventListener('click', function() {
+    let userInput = document.getElementById('user-input').value;
+    if (userInput.trim() === '') {
+        return;
+    }
+
+    let chatLog = document.getElementById('chat-log');
+    chatLog.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
 
     fetch('/ask', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-            'question': question
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Display the chatbot's response in the chat history
-        addMessageToChat('Chatbot', data.answer);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: userInput })
+    }).then(response => response.json())
+      .then(data => {
+          chatLog.innerHTML += `<div><strong>Chatbot:</strong> ${data.answer}</div>`;
+          document.getElementById('user-input').value = '';
+      })
+      .catch(error => {
+          console.error('Error asking question:', error);
+      });
 });
-
-// Function to add a message to the chat history
-function addMessageToChat(sender, message) {
-    const chatHistory = document.getElementById('chat-history');
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('chat-message');
-    messageElement.innerHTML = `<strong>${sender}:</strong> <p>${message}</p>`;
-    chatHistory.appendChild(messageElement);
-    chatHistory.scrollTop = chatHistory.scrollHeight; // Scroll to the bottom
-}
